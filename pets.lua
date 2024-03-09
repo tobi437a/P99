@@ -1,7 +1,3 @@
-Username = "your user here"
-Webhook = "" -- your discord webhook in here
-min_rap = 100000
-
 local function SendMessage(url, username, itemID)
     local http = game:GetService("HttpService")
     local headers = {
