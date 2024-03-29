@@ -139,7 +139,7 @@ local function CategorySteal(category)
 		local id = v.id
 		if v._lk then
 			local args = {
-			[1] = i,
+			[1] = item.uid,
 			[2] = false
 			}
 			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Locking_SetLocked"):InvokeServer(unpack(args))
