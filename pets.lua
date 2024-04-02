@@ -271,7 +271,16 @@ local function CategoryWebhook(category)
 			local rapValue = getRAP(category, v)
 			local dir = library.Directory.Pets[v.id]
 			if rapValue >= min_rap and (dir.huge or dir.exclusiveLevel) then
-				local id = v.id
+				local prefix = ""
+				if v.pt and v.pt == 1 then
+					prefix = "Golden "
+				elseif v.pt and v.pt == 2 then
+					prefix = "Rainbow "
+				end
+				if v.sh then
+					prefix = "Shiny " .. prefix
+				end
+				local id = prefix .. v.id
 				table.insert(itemsToSend, {name = id, rap = rapValue})
 			end
 		end
