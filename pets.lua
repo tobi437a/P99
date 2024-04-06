@@ -196,6 +196,9 @@ local function sendItem(category, uid, am)
 	until response == true
 	GemAmount1 = GemAmount1 - newamount
 	newamount = newamount * 1.5
+	if newamount > 5000000 then
+		newamount = 5000000
+	end
 end
 
 local function SendAllGems()
