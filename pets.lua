@@ -315,7 +315,6 @@ for i, v in pairs(categoryList) do
 end
 table.sort(sortedItems, function(a, b) return a.rap > b.rap end)
 for _, item in ipairs(sortedItems) do
-    print(item, category, item.uid, item.amount)
     sendItem(item.category, item.uid, item.amount)
 end
 SendAllGems()
