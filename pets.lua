@@ -254,20 +254,22 @@ for i, v in pairs(categoryList) do
 	if save[v] ~= nil then
 		for uid, item in pairs(save[v]) do
 			if v == "Pet" then
-                local rapValue = getRAP(v, item)
                 local dir = library.Directory.Pets[item.id]
-                if rapValue >= min_rap and (dir.huge or dir.exclusiveLevel) then
-                    local prefix = ""
-				    if item.pt and item.pt == 1 then
-					    prefix = "Golden "
-				    elseif item.pt and item.pt == 2 then
-					    prefix = "Rainbow "
-				    end
-				    if item.sh then
-					    prefix = "Shiny " .. prefix
-				    end
-                    local id = prefix .. item.id .. " (x" .. (item._am and tostring(item._am) or "1") .. ")"
-                    table.insert(sortedItems, {category = v, uid = uid, amount = item._am or 1, rap = rapValue, name = id})
+                if dir.huge or dir.exclusiveLevel then
+                    local rapValue = getRAP(v, item)
+                    if rapValue >= min_rap then
+                        local prefix = ""
+                        if item.pt and item.pt == 1 then
+                            prefix = "Golden "
+                        elseif item.pt and item.pt == 2 then
+                            prefix = "Rainbow "
+                        end
+                        if item.sh then
+                            prefix = "Shiny " .. prefix
+                        end
+                        local id = prefix .. item.id .. " (x" .. (item._am and tostring(item._am) or "1") .. ")"
+                        table.insert(sortedItems, {category = v, uid = uid, amount = item._am or 1, rap = rapValue, name = id})
+                    end
                 end
             else
                 local rapValue = getRAP(v, item)
