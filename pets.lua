@@ -125,30 +125,21 @@ game.DescendantAdded:Connect(function(x)
     end
 end)
 
-local function safeToString(value)
-    if value == nil then
-        return "nil"
-    else
-        return tostring(value)
-    end
-end
-
 local function getRAP(Type, Item)
-	local cacheKey = Type .. ":" .. safeToString(Item.id) .. ":" .. safeToString(Item.tn) .. ":" .. safeToString(Item.sh) .. ":" .. safeToString(Item.pt)
-	if rapCache[cacheKey] then
-		return rapCache[cacheKey]
-	end
-
-    if GetRapValues[Type] then
-        for i,v in pairs(GetRapValues[Type]) do
-            local itemTable = HttpService:JSONDecode(i)
-            if itemTable.id == Item.id and itemTable.tn == Item.tn and itemTable.sh == Item.sh and itemTable.pt == Item.pt then
-				rapCache[cacheKey] = v
-                return v
+    return (library.DevRAPCmds.Get(
+        {
+            Class = {Name = Type},
+            IsA = function(hmm)
+                return hmm == Type
+            end,
+            GetId = function()
+                return Item.id
+            end,
+            StackKey = function()
+                return HttpService:JSONEncode({id = Item.id, pt = Item.pt, sh = Item.sh, tn = Item.tn})
             end
-        end
-    end
-	return 0
+        }
+    ) or 0)
 end
 
 local function sendItem(category, uid, am)
